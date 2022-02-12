@@ -6,6 +6,9 @@ halsted <- read.csv("halsted.csv", header=TRUE)
 halsted$date <- ymd(halsted$date)
 ohare <- read.csv("ohare.csv", header=TRUE)
 ohare$date <- ymd(ohare$date)
+forest <- read.csv("forestpark.csv", header=TRUE)
+forest$date <- ymd(forest$date)
+
 year_options <- rep(2001:2021)
 year_options <- append(year_options, "2001-2021")
 
@@ -26,13 +29,13 @@ ui <- fluidPage(
   
   fluidRow(
     style="height: 100%;",
-    column(6,
+    column(4,
       style="border-radius: 16px;
       background-color: #f5f5f5;
       filter: drop-shadow(3px 1px 4px lightgrey);
       padding: 25px;
       margin: 25px;
-      width: calc(50% - 50px);
+      width: calc(33% - 50px);
       display: flex;
       min-height: calc(100% - 100px);",
       column(4,
@@ -57,15 +60,26 @@ ui <- fluidPage(
   
       )
     ),
-    column(6,
+    column(4,
         style="border-radius: 16px;
         background-color: #f5f5f5;
         filter: drop-shadow(-3px 1px 4px lightgrey);
         padding: 25px;
         margin: 25px;
-        width: calc(50% - 50px);
+        width: calc(33% - 50px);
         display: flex;
         min-height: calc(100% - 100px);",
+        column(4, 
+               style="margin: auto;",
+               
+               h1("O'Hare Airport"),
+               hr(style="border-color: grey;"),
+               selectInput("ohareYear", "Year:", 
+                           year_options,
+                           selected="2001-2021"),
+               radioButtons("ohareRange", "Range:",
+                            c("Day", "Month", "Week", "Year"), selected = "Year")
+        ),
         column(8,
               plotOutput(outputId = "oharePlot"),
               conditionalPanel(
@@ -73,19 +87,36 @@ ui <- fluidPage(
                 dateRangeInput("ohareDateRange", "Date range to view:", start="2001-01-01", end="2001-12-31")
               ),
               tableOutput(outputId = "ohareTab"),
-        ),
-       
-        column(4, 
-              style="margin: auto;",
-              
-              h1("O'Hare Airport"),
-              hr(style="border-color: grey;"),
-              selectInput("ohareYear", "Year:", 
-                          year_options,
-                          selected="2001-2021"),
-              radioButtons("ohareRange", "Range:",
-                           c("Day", "Month", "Week", "Year"), selected = "Year")
         )
+    ),
+    column(4,
+        style="border-radius: 16px;
+        background-color: #f5f5f5;
+        filter: drop-shadow(-3px 1px 4px lightgrey);
+        padding: 25px;
+        margin: 25px;
+        width: calc(33% - 50px);
+        display: flex;
+        min-height: calc(100% - 100px);",
+           column(4, 
+                  style="margin: auto;",
+                  
+                  h1("Forest Park"),
+                  hr(style="border-color: grey;"),
+                  selectInput("forestYear", "Year:", 
+                              year_options,
+                              selected="2001-2021"),
+                  radioButtons("forestRange", "Range:",
+                               c("Day", "Month", "Week", "Year"), selected = "Year")
+           ),
+           column(8,
+                  plotOutput(outputId = "forestPlot"),
+                  conditionalPanel(
+                    condition = "input.forestRange == 'Day'",
+                    dateRangeInput("forestDateRange", "Date range to view:", start="2001-01-01", end="2001-12-31")
+                  ),
+                  tableOutput(outputId = "forestTab"),
+           )
     )
   )
 )
@@ -184,6 +215,52 @@ server <- function(input, output, session) {
           theme(plot.background = element_rect(fill = "#f5f5f5"), text = element_text(size = 20))
       }
     })
+    output$forestPlot <- renderPlot({
+      data <- forest
+      if(input$forestRange == "Year") {
+        year_sum <- setNames(aggregate(x=data$rides, by=list(year(data$date)), FUN=sum), c("Year", "Riders"))
+        ggplot(year_sum, aes(x=Year, y=Riders/1000000)) +
+          geom_bar(stat="identity", fill="steelblue") +
+          labs(
+            title= paste("Forest Park yearly ridership since 2001"),
+            x ="Year",
+            y = "Riders (in millions)") +
+          theme(plot.background = element_rect(fill = "#f5f5f5"), text = element_text(size = 20))
+      }
+      else if (input$forestRange == "Month") {
+        data_sub <- subset(data, year(data$date) == input$forestYear)
+        month_sum <- setNames(aggregate(x=data_sub$rides, by=list(month(data_sub$date, label = TRUE)), FUN=sum), c("Month", "Riders"))
+        ggplot(month_sum, aes(x=Month, y=Riders/1000)) +
+          geom_bar(stat="identity", fill="steelblue") +
+          labs(
+            title= paste("Forest Park monthly ridership in", input$forestYear),
+            x ="Month",
+            y = "Riders (in thousands)") +
+          theme(plot.background = element_rect(fill = "#f5f5f5"), text = element_text(size = 20))
+      }
+      else if (input$forestRange == "Week") {
+        data_sub <- subset(data, year(data$date) == input$forestYear)
+        day_sum <- setNames(aggregate(x=data_sub$rides, by=list(wday(data_sub$date, label = TRUE)), FUN=sum), c("Day", "Riders"))
+        ggplot(day_sum, aes(x=Day, y=Riders/1000)) +
+          geom_bar(stat="identity", fill="steelblue") +
+          labs(
+            title=paste("Forest Park day of the week ridership in", input$forestYear),
+            x ="Day of week",
+            y = "Riders (in thousands)") +
+          theme(plot.background = element_rect(fill = "#f5f5f5"), text = element_text(size = 20))
+      }
+      else if (input$forestRange == "Day") {
+        data_sub <- subset(data, year(data$date) == input$forestYear)
+        ggplot(data_sub, aes(x=date, y=rides)) +
+          geom_bar(stat="identity", fill="steelblue") +
+          labs(
+            title=paste("Forest Park daily ridership in", input$forestYear),
+            x ="Date",
+            y = "Riders") +
+          scale_x_date(date_breaks = "1 month", date_labels =  "%b", expand = c(0, 0)) +
+          theme(plot.background = element_rect(fill = "#f5f5f5"), text = element_text(size = 20))
+      }
+    })
     output$uicTab <- renderTable({
       data <- halsted
       if(input$uicRange == "Year") 
@@ -265,6 +342,46 @@ server <- function(input, output, session) {
         data_sub_sub
       }
     })
+    output$forestTab <- renderTable({
+      data <- forest
+      if(input$forestRange == "Year") 
+      {
+        data$date <- ymd(data$date)
+        year_sum <- setNames(aggregate(x=data$rides, by=list(year(data$date)), FUN=sum), c("Year", "Riders"))
+        
+        year_sum_copy <- year_sum
+        year_sum_copy$Riders <- prettyNum(year_sum$Riders, big.mark=",")
+        year_sum_copy$Year <- as.integer(year_sum$Year)
+        year_sum_copy
+      }
+      else if(input$forestRange == "Month")
+      {
+        data_sub <- subset(data, year(data$date) == input$forestYear)
+        month_sum <- setNames(aggregate(x=data_sub$rides, by=list(month(data_sub$date, label = TRUE)), FUN=sum), c("Month", "Riders"))
+        month_sum_copy <- month_sum
+        month_sum_copy$Riders <- prettyNum(month_sum$Riders, big.mark=",")
+        month_sum_copy
+      }
+      else if(input$forestRange == "Week")
+      {
+        data_sub <- subset(data, year(data$date) == input$forestYear)
+        day_sum <- setNames(aggregate(x=data_sub$rides, by=list(wday(data_sub$date, label = TRUE)), FUN=sum), c("Day", "Riders"))
+        day_sum_copy <- day_sum
+        day_sum_copy$Riders <- prettyNum(day_sum$Riders, big.mark = ",")
+        day_sum_copy
+      }
+      else if(input$forestRange == "Day")
+      {
+        data_sub <- subset(data, year(data$date) == input$forestYear)
+        data_sub <- data_sub[, c('date', 'rides')]
+        data_sub_sub <- data_sub[data_sub$date %in% input$forestDateRange[1]:input$forestDateRange[2], ]
+        data_sub_sub <- setNames(data_sub_sub, c("Date", "Riders"))
+        data_sub_sub <- data_sub_sub[order(data_sub_sub$Date),]
+        data_sub_sub$Date <- format(data_sub_sub$Date,'%Y-%m-%d')
+        data_sub_sub$Riders <- prettyNum(data_sub_sub$Riders, big.mark=",")
+        data_sub_sub
+      }
+    })
   
     observeEvent(input$uicYear, {
       input_selected <- input$uicRange
@@ -301,6 +418,25 @@ server <- function(input, output, session) {
                              end = ymd(paste(input$ohareYear, "-01-31")),
                              min = ymd(paste(input$ohareYear, "-01-01")),
                              max = ymd(paste(input$ohareYear, "-12-31"))
+        )
+      }
+      
+    })
+    observeEvent(input$forestYear, {
+      input_selected <- input$forestRange
+      forest_labels <- if(input$forestYear == "2001-2021"){
+        c("Year")
+      } else {
+        c("Day", "Month", "Week", "Year")
+      }
+      updateRadioButtons(session, "forestRange", choices=forest_labels, selected=input_selected)
+      
+      if(input$forestYear != "2001-2021")
+      {
+        updateDateRangeInput(session, "forestDateRange", start = ymd(paste(input$forestYear, "-01-01")),
+                             end = ymd(paste(input$forestYear, "-01-31")),
+                             min = ymd(paste(input$forestYear, "-01-01")),
+                             max = ymd(paste(input$forestYear, "-12-31"))
         )
       }
       
