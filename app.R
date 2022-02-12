@@ -23,9 +23,8 @@ ui <- fluidPage(
                     }
                     "))
   ),
-  style="height: 100%;",
+  style="height: 100%; display: flex; flex-direction: column;",
   titlePanel("CS 424 Project 1"),
-  actionButton("about", "About"),
   
   fluidRow(
     style="height: 100%;",
@@ -37,7 +36,7 @@ ui <- fluidPage(
       margin: 25px;
       width: calc(33% - 50px);
       display: flex;
-      min-height: calc(100% - 100px);",
+      height: calc(100% - 100px);",
       column(4,
         style="margin: auto;",
         h1("UIC-Halsted"),
@@ -46,8 +45,9 @@ ui <- fluidPage(
                     year_options,
                     selected="2001-2021"),
         radioButtons("uicRange", "Range:",
-                     c("Day", "Month", "Week", "Year"), selected = "Year")
-  
+                     c("Day", "Month", "Week", "Year"), selected = "Year"),
+        actionButton("about", "About this app")
+        
       ),
   
       column(8,
@@ -63,12 +63,12 @@ ui <- fluidPage(
     column(4,
         style="border-radius: 16px;
         background-color: #f5f5f5;
-        filter: drop-shadow(-3px 1px 4px lightgrey);
+        filter: drop-shadow(0px 1px 4px lightgrey);
         padding: 25px;
         margin: 25px;
         width: calc(33% - 50px);
         display: flex;
-        min-height: calc(100% - 100px);",
+        height: calc(100% - 100px);",
         column(4, 
                style="margin: auto;",
                
@@ -97,7 +97,7 @@ ui <- fluidPage(
         margin: 25px;
         width: calc(33% - 50px);
         display: flex;
-        min-height: calc(100% - 100px);",
+        height: calc(100% - 100px);",
            column(4, 
                   style="margin: auto;",
                   
